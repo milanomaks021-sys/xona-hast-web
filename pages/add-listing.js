@@ -10,6 +10,7 @@ const TYPES = [
   ['office', 'Офис'],
   ['land', 'Участок'],
 ];
+
 const CITIES = [
   // Душанбе
   'Душанбе',

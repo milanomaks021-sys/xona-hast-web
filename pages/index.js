@@ -1,150 +1,248 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'https://xona-hast-backend.onrender.com/api';
+const API = process.env.NEXT_PUBLIC_API_URL;
+
+const CATEGORIES = [
+  ['🏢', 'Купить квартиру', '/listings?deal=sale&type=apartment'],
+  ['🔑', 'Снять квартиру', '/listings?deal=rent&type=apartment'],
+  ['🏡', 'Купить дом', '/listings?deal=sale&type=house'],
+  ['🏗️', 'Новостройки', '/listings?type=apartment&new=1'],
+  ['💼', 'Офис', '/listings?type=office'],
+  ['🌿', 'Участок', '/listings?type=land'],
+];
 
 export default function Home() {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
-    fetch(`${API}/listings?limit=12&sort=vip_first`)
-      .then(r => r.json())
-      .then(d => setListings(d.data || []))
+    fetch(`${API}/api/listings?limit=8`)
+      .then((r) => r.json())
+      .then((res) => { if (res.success) setListings(res.data || []); })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   return (
-    <div>
+    <div style={{ minHeight: '100vh', background: '#F7F8FA', fontFamily: "'Inter', -apple-system, sans-serif" }}>
+
       {/* HERO */}
-      <div style={{ background: 'linear-gradient(135deg,#0F2340,#1B3A6B)', minHeight: '90vh', display: 'flex', alignItems: 'center', paddingTop: 70 }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 20px', width: '100%' }}>
-          <div style={{ display: 'inline-block', background: 'rgba(244,130,31,0.15)', border: '1px solid rgba(244,130,31,0.3)', borderRadius: 20, padding: '6px 16px', color: '#F4821F', fontSize: 12, fontWeight: 700, marginBottom: 24, letterSpacing: '0.06em' }}>
+      <section style={{
+        background: 'linear-gradient(160deg, #0F2244 0%, #16305E 55%, #1A3A6E 100%)',
+        padding: '56px 20px 64px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          position: 'absolute', top: -80, right: -60, width: 280, height: 280,
+          background: 'radial-gradient(circle, rgba(249,115,22,0.18), transparent 70%)',
+          borderRadius: '50%', pointerEvents: 'none',
+        }} />
+
+        <div style={{ maxWidth: 720, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+          <span style={{
+            display: 'inline-block', background: 'rgba(249,115,22,0.14)', color: '#FDBA74',
+            border: '1px solid rgba(249,115,22,0.3)', fontSize: 12, fontWeight: 700,
+            letterSpacing: '0.04em', padding: '6px 14px', borderRadius: 30, marginBottom: 20,
+          }}>
             🏠 НЕДВИЖИМОСТЬ ТАДЖИКИСТАНА №1
-          </div>
-          <h1 style={{ fontFamily: 'Georgia, serif', fontWeight: 900, fontSize: 'clamp(32px,6vw,60px)', color: '#fff', lineHeight: 1.15, marginBottom: 16, maxWidth: 650 }}>
-            Найди своё<br /><span style={{ color: '#F4821F' }}>идеальное жильё</span><br />в Таджикистане
+          </span>
+
+          <h1 style={{
+            fontFamily: 'Georgia, serif', color: '#fff', fontSize: 'clamp(32px, 7vw, 44px)',
+            lineHeight: 1.15, margin: '0 0 14px',
+          }}>
+            Найди своё <span style={{ color: '#F97316' }}>идеальное жильё</span><br />в Таджикистане
           </h1>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 17, maxWidth: 500, lineHeight: 1.7, marginBottom: 36 }}>
-            Тысячи объявлений о продаже и аренде. Бесплатно разместить на 14 дней.
+
+          <p style={{ color: '#A9B6CC', fontSize: 15, lineHeight: 1.6, margin: '0 0 28px', maxWidth: 480 }}>
+            Тысячи объявлений о продаже и аренде. Размести своё бесплатно на 14 дней.
           </p>
 
-          {/* ПОИСК */}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', maxWidth: 680, marginBottom: 40 }}>
-            <input placeholder="🔍 Квартира, район, адрес..." style={{ flex: '1 1 200px', padding: '14px 18px', borderRadius: 10, border: 'none', fontSize: 15, outline: 'none' }} />
-            <Link href="/listings" style={{ padding: '14px 28px', background: '#F4821F', color: '#fff', borderRadius: 10, fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
+          <div style={{
+            background: '#fff', borderRadius: 16, padding: 8, display: 'flex', gap: 8,
+            boxShadow: '0 20px 40px -10px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.06)',
+          }}>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Квартира, район, адрес…"
+              style={{ flex: 1, border: 'none', outline: 'none', fontSize: 15, padding: '10px 12px', color: '#1A1A1A' }}
+            />
+            <Link
+              href={`/listings${search ? `?search=${encodeURIComponent(search)}` : ''}`}
+              style={{
+                background: '#F97316', color: '#fff', fontWeight: 700, fontSize: 14,
+                padding: '12px 24px', borderRadius: 10, textDecoration: 'none',
+                display: 'flex', alignItems: 'center', whiteSpace: 'nowrap',
+                boxShadow: '0 8px 16px -4px rgba(249,115,22,0.5)',
+              }}
+            >
               Найти
             </Link>
           </div>
 
-          {/* СТАТИСТИКА */}
-          <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
-            {[['2000+','Объявлений'],['9','Городов'],['14','Дней бесплатно'],['100%','Проверено ИИ']].map(([n,l]) => (
-              <div key={l}>
-                <div style={{ fontWeight: 900, fontSize: 28, color: '#F4821F' }}>{n}</div>
-                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)' }}>{l}</div>
-              </div>
-            ))}
+          <div style={{ display: 'flex', gap: 28, marginTop: 32, flexWrap: 'wrap' }}>
+            <Stat value="2000+" label="Объявлений" />
+            <Stat value="9" label="Городов" />
+            <Stat value="14" label="Дней бесплатно" />
+            <Stat value="100%" label="Проверено ИИ" />
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* КАТЕГОРИИ */}
-      <div style={{ background: '#fff', padding: '48px 20px' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <h2 style={{ fontFamily: 'Georgia,serif', fontWeight: 800, fontSize: 26, color: '#0F2340', marginBottom: 24 }}>Что вы ищете?</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 14 }}>
-            {[
-              ['🏢','Купить квартиру','/listings?type=apartment&deal=sale'],
-              ['🔑','Снять квартиру','/listings?type=apartment&deal=rent'],
-              ['🏠','Купить дом','/listings?type=house&deal=sale'],
-              ['🏗️','Новостройки','/listings?type=new_building&deal=sale'],
-              ['💼','Офис','/listings?type=office&deal=rent'],
-              ['🌿','Участок','/listings?type=land&deal=sale'],
-            ].map(([icon,label,href]) => (
-              <Link key={label} href={href} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px 12px', background: '#F7F8FA', borderRadius: 14, border: '2px solid transparent', textAlign: 'center', gap: 8, transition: 'all 0.15s', color: '#1A1A2E', fontWeight: 600, fontSize: 13 }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor='#F4821F'; e.currentTarget.style.background='#FFF8F3'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor='transparent'; e.currentTarget.style.background='#F7F8FA'; }}
-              >
-                <span style={{ fontSize: 30 }}>{icon}</span>{label}
-              </Link>
-            ))}
-          </div>
+      <section style={{ padding: '40px 20px', maxWidth: 1100, margin: '0 auto' }}>
+        <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 22, color: '#0F2244', margin: '0 0 18px' }}>
+          Что вы ищете?
+        </h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 14 }}>
+          {CATEGORIES.map(([icon, label, href]) => (
+            <CategoryCard key={label} icon={icon} label={label} href={href} />
+          ))}
         </div>
-      </div>
+      </section>
 
-      {/* ОБЪЯВЛЕНИЯ */}
-      <div style={{ padding: '48px 20px', background: '#F7F8FA' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-            <h2 style={{ fontFamily: 'Georgia,serif', fontWeight: 800, fontSize: 26, color: '#0F2340' }}>⭐ Топ объявлений</h2>
-            <Link href="/listings" style={{ color: '#F4821F', fontWeight: 600, fontSize: 14 }}>Все →</Link>
-          </div>
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: 60, color: '#6B7280' }}>⏳ Загружаем...</div>
-          ) : listings.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 60, background: '#fff', borderRadius: 16 }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>🏠</div>
-              <p style={{ color: '#6B7280', marginBottom: 20 }}>Пока нет объявлений</p>
-              <Link href="/add-listing" style={{ padding: '12px 24px', background: '#F4821F', color: '#fff', borderRadius: 10, fontWeight: 700 }}>+ Разместить первое</Link>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 20 }}>
-              {listings.map(l => (
-                <Link key={l.id} href={`/listing/${l.id}`} style={{ background: '#fff', borderRadius: 14, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'block', transition: 'transform 0.2s', color: 'inherit' }}
-                  onMouseEnter={e => e.currentTarget.style.transform='translateY(-3px)'}
-                  onMouseLeave={e => e.currentTarget.style.transform='none'}
-                >
-                  <div style={{ height: 190, background: '#E4E7ED', position: 'relative' }}>
-                    {l.photos && JSON.parse(l.photos||'[]')[0] && (
-                      <img src={JSON.parse(l.photos)[0]} alt={l.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    )}
-                    {l.vip_type && <span style={{ position: 'absolute', top: 10, left: 10, background: l.vip_type==='premium'?'#F4821F':'#EAB308', color: '#fff', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{l.vip_type.toUpperCase()}</span>}
-                  </div>
-                  <div style={{ padding: '14px 16px' }}>
-                    <div style={{ fontWeight: 800, fontSize: 18, color: '#F4821F', marginBottom: 6 }}>
-                      {l.price_somoni ? `${Number(l.price_somoni).toLocaleString()} сом` : l.price_usd ? `$${Number(l.price_usd).toLocaleString()}` : 'Договорная'}
-                    </div>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: '#1A1A2E', marginBottom: 6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{l.title}</div>
-                    <div style={{ fontSize: 12, color: '#6B7280' }}>📍 {l.city}{l.district?`, ${l.district}`:''}</div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
+      <section style={{ padding: '8px 20px 48px', maxWidth: 1100, margin: '0 auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 18 }}>
+          <h2 style={{ fontFamily: 'Georgia, serif', fontSize: 22, color: '#0F2244', margin: 0 }}>
+            ⭐ Топ объявлений
+          </h2>
+          <Link href="/listings" style={{ color: '#F97316', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
+            Все →
+          </Link>
         </div>
-      </div>
 
-      {/* КАК РАБОТАЕТ */}
-      <div style={{ background: '#0F2340', padding: '56px 20px', color: '#fff' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontFamily: 'Georgia,serif', fontWeight: 800, fontSize: 26, marginBottom: 48 }}>Как это <span style={{ color: '#F4821F' }}>работает?</span></h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 32 }}>
-            {[
-              ['📱','Регистрация','Войдите по номеру телефона. Быстро и просто.'],
-              ['📸','Добавьте объявление','Загрузите фото и укажите цену. Бесплатно 14 дней.'],
-              ['🤖','Проверка ИИ','Модератор проверит за 1–5 минут. Защита от мошенников.'],
-              ['📢','Автопостинг','Объявление опубликуется в Telegram и Instagram.'],
-            ].map(([icon,title,desc]) => (
-              <div key={title}>
-                <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(244,130,31,0.15)', border: '2px solid rgba(244,130,31,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, margin: '0 auto 16px' }}>{icon}</div>
-                <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>{title}</div>
-                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>{desc}</div>
-              </div>
-            ))}
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>Загрузка...</div>
+        ) : listings.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 18 }}>
+            {listings.map((l) => <ListingCard key={l.id} listing={l} />)}
           </div>
-          <div style={{ marginTop: 48 }}>
-            <Link href="/add-listing" style={{ padding: '15px 32px', background: '#F4821F', color: '#fff', borderRadius: 10, fontWeight: 700, fontSize: 16 }}>
-              Разместить объявление бесплатно →
-            </Link>
-          </div>
+        )}
+      </section>
+
+      <section style={{ background: '#0F2244', padding: '48px 20px' }}>
+        <div style={{ maxWidth: 600, margin: '0 auto', textAlign: 'center' }}>
+          <div style={{ fontSize: 38, marginBottom: 12 }}>📸</div>
+          <h2 style={{ fontFamily: 'Georgia, serif', color: '#fff', fontSize: 24, margin: '0 0 8px' }}>
+            Добавьте объявление
+          </h2>
+          <p style={{ color: '#A9B6CC', fontSize: 14, margin: '0 0 24px' }}>
+            Загрузите фото и укажите цену. Бесплатно 14 дней — без скрытых платежей.
+          </p>
+          <Link href="/add-listing" style={{
+            display: 'inline-block', background: '#F97316', color: '#fff', fontWeight: 700,
+            fontSize: 16, padding: '16px 36px', borderRadius: 12, textDecoration: 'none',
+            boxShadow: '0 12px 24px -6px rgba(249,115,22,0.5)',
+          }}>
+            Разместить объявление бесплатно →
+          </Link>
         </div>
-      </div>
+      </section>
 
-      {/* FOOTER */}
-      <footer style={{ background: '#060F1E', color: 'rgba(255,255,255,0.5)', padding: '24px 20px', textAlign: 'center', fontSize: 13 }}>
-        © {new Date().getFullYear()} Хона.Ҳаст.tj — Недвижимость Таджикистана · <span style={{ color: '#F4821F', fontWeight: 700 }}>Бо Ақл Биёв!</span>
+      <footer style={{ background: '#0A1830', padding: '24px 20px', textAlign: 'center' }}>
+        <p style={{ color: '#5C6B85', fontSize: 13, margin: 0 }}>
+          © {new Date().getFullYear()} Хона.Ҳаст.tj — Недвижимость Таджикистана · <span style={{ color: '#F97316', fontWeight: 600 }}>Бо ақл биёв!</span>
+        </p>
       </footer>
+    </div>
+  );
+}
+
+function Stat({ value, label }) {
+  return (
+    <div>
+      <div style={{ color: '#F97316', fontSize: 22, fontWeight: 800, lineHeight: 1 }}>{value}</div>
+      <div style={{ color: '#7C8BA8', fontSize: 12, marginTop: 4 }}>{label}</div>
+    </div>
+  );
+}
+
+function CategoryCard({ icon, label, href }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <Link
+      href={href}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        textDecoration: 'none', background: '#fff', borderRadius: 16, padding: '22px 14px',
+        textAlign: 'center', transition: 'transform 0.18s ease, box-shadow 0.18s ease',
+        transform: hover ? 'translateY(-4px) scale(1.02)' : 'none',
+        boxShadow: hover
+          ? '0 16px 28px -8px rgba(15,34,68,0.18)'
+          : '0 2px 8px -2px rgba(15,34,68,0.08)',
+      }}
+    >
+      <div style={{ fontSize: 30, marginBottom: 8 }}>{icon}</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: '#1A1A1A' }}>{label}</div>
+    </Link>
+  );
+}
+
+function ListingCard({ listing }) {
+  const [hover, setHover] = useState(false);
+  const photo = listing.photos && listing.photos.length > 0 ? listing.photos[0] : null;
+  const priceLabel = listing.price_somoni
+    ? `${Number(listing.price_somoni).toLocaleString('ru-RU')} смн`
+    : 'Цена не указана';
+
+  return (
+    <Link
+      href={`/listings/${listing.id}`}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        textDecoration: 'none', color: 'inherit', background: '#fff', borderRadius: 16,
+        overflow: 'hidden', display: 'block', transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+        transform: hover ? 'translateY(-6px)' : 'none',
+        boxShadow: hover
+          ? '0 20px 32px -10px rgba(15,34,68,0.22)'
+          : '0 2px 10px -4px rgba(15,34,68,0.1)',
+      }}
+    >
+      <div style={{ height: 140, background: '#E8ECF2', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+        {photo ? (
+          <img src={photo} alt={listing.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          <span style={{ fontSize: 28, opacity: 0.3 }}>🏠</span>
+        )}
+        {listing.vip_type && (
+          <span style={{
+            position: 'absolute', top: 8, left: 8,
+            background: listing.vip_type === 'premium' ? '#F97316' : '#FACC15',
+            color: '#fff', fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 6,
+          }}>
+            {listing.vip_type === 'premium' ? 'PREMIUM' : 'VIP'}
+          </span>
+        )}
+      </div>
+      <div style={{ padding: 12 }}>
+        <div style={{ fontWeight: 700, fontSize: 15, color: '#0F2244' }}>{priceLabel}</div>
+        <div style={{ fontSize: 13, color: '#444', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {listing.title}
+        </div>
+        <div style={{ fontSize: 11, color: '#999', marginTop: 4 }}>
+          {[listing.rooms && `${listing.rooms} комн.`, listing.city].filter(Boolean).join(' · ')}
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div style={{
+      textAlign: 'center', padding: '48px 20px', background: '#fff', borderRadius: 16,
+      boxShadow: '0 2px 10px -4px rgba(15,34,68,0.08)',
+    }}>
+      <div style={{ fontSize: 36, marginBottom: 10 }}>🏠</div>
+      <div style={{ fontSize: 15, color: '#555', marginBottom: 4 }}>Пока нет объявлений</div>
+      <div style={{ fontSize: 13, color: '#999' }}>Станьте первым, кто разместит объявление</div>
     </div>
   );
 }

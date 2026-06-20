@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 
-const API = process.env.NEXT_PUBLIC_API_URL;
+const RAW_API = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/+$/, '');
+const API = RAW_API.endsWith('/api') ? RAW_API : `${RAW_API}/api`;
 
 export default function Login() {
   const router = useRouter();
@@ -24,8 +25,8 @@ export default function Login() {
     e.preventDefault();
     if (!phone) { toast.error('Введите номер телефона'); return; }
     setLoading(true);
+    const url = `${API}/auth/send-code`;
     try {
-      const url = `${API}/api/auth/send-code`;
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -42,7 +43,7 @@ export default function Login() {
       }
     } catch (err) {
       setLoading(false);
-      toast.error(`DEBUG: ${API} | ${err.message}`, { duration: 15000 });
+      toast.error(`DEBUG URL: ${url} | ${err.message}`, { duration: 15000 });
     }
   };
 
@@ -74,8 +75,9 @@ export default function Login() {
 
   const verifyCode = async (fullCode) => {
     setLoading(true);
+    const url = `${API}/auth/verify-code`;
     try {
-      const res = await fetch(`${API}/api/auth/verify-code`, {
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, code: fullCode, name: name || undefined }),
@@ -96,9 +98,9 @@ export default function Login() {
         setCode(['', '', '', '', '', '']);
         inputsRef.current[0]?.focus();
       }
-    } catch {
+    } catch (err) {
       setLoading(false);
-      toast.error('Ошибка сети');
+      toast.error(`DEBUG URL: ${url} | ${err.message}`, { duration: 15000 });
     }
   };
 

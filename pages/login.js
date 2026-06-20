@@ -1,76 +1,294 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import toast from 'react-hot-toast';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'https://xona-hast-backend.onrender.com/api';
+const API = process.env.NEXT_PUBLIC_API_URL;
 
 export default function Login() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [phone, setPhone] = useState('');
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(['', '', '', '', '', '']);
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isNew, setIsNew] = useState(false);
+  const [played, setPlayed] = useState(false);
+  const inputsRef = useRef([]);
 
-  const sendCode = async () => {
-    if (phone.length < 9) { toast.error('Введите номер'); return; }
+  useEffect(() => {
+    const t = setTimeout(() => setPlayed(true), 80);
+    return () => clearTimeout(t);
+  }, []);
+
+  const sendCode = async (e) => {
+    e.preventDefault();
+    if (!phone) { toast.error('Введите номер телефона'); return; }
     setLoading(true);
-    const res = await fetch(`${API}/auth/send-code`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: '+992' + phone.replace(/\D/g,'') })
-    }).then(r => r.json());
-    setLoading(false);
-    if (res.success) { toast.success('SMS отправлен!'); setStep(2); if (res.dev_code) toast(`Код: ${res.dev_code}`, { icon: '🔧', duration: 15000 }); }
-    else toast.error(res.message);
+    try {
+      const res = await fetch(`${API}/api/auth/send-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      }).then((r) => r.json());
+      setLoading(false);
+      if (res.success) {
+        toast.success('Код отправлен!');
+        if (res.dev_code) toast(`Тестовый код: ${res.dev_code}`, { duration: 8000, icon: '🔑' });
+        setStep(2);
+        setTimeout(() => inputsRef.current[0]?.focus(), 100);
+      } else {
+        toast.error(res.message || 'Ошибка');
+      }
+    } catch {
+      setLoading(false);
+      toast.error('Ошибка сети');
+    }
   };
 
-  const verifyCode = async () => {
+  const handleCodeChange = (i, val) => {
+    if (!/^[0-9]?$/.test(val)) return;
+    const next = [...code];
+    next[i] = val;
+    setCode(next);
+    if (val && i < 5) inputsRef.current[i + 1]?.focus();
+    if (next.every((c) => c !== '') && next.join('').length === 6) {
+      verifyCode(next.join(''));
+    }
+  };
+
+  const handleKeyDown = (i, e) => {
+    if (e.key === 'Backspace' && !code[i] && i > 0) {
+      inputsRef.current[i - 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e) => {
+    const text = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (text.length === 6) {
+      const next = text.split('');
+      setCode(next);
+      verifyCode(text);
+    }
+  };
+
+  const verifyCode = async (fullCode) => {
     setLoading(true);
-    const res = await fetch(`${API}/auth/verify-code`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: '+992' + phone.replace(/\D/g,''), code, name })
-    }).then(r => r.json());
-    setLoading(false);
-    if (res.success) {
-      localStorage.setItem('xh_token', res.token);
-      localStorage.setItem('xh_user', JSON.stringify(res.user));
-      toast.success('Добро пожаловать!');
-      router.push('/');
-    } else toast.error(res.message);
+    try {
+      const res = await fetch(`${API}/api/auth/verify-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, code: fullCode, name: name || undefined }),
+      }).then((r) => r.json());
+      setLoading(false);
+      if (res.success) {
+        localStorage.setItem('xh_token', res.token);
+        localStorage.setItem('xh_user', JSON.stringify(res.user));
+        if (res.is_new && !name) {
+          setIsNew(true);
+          setStep(3);
+        } else {
+          toast.success('Добро пожаловать!');
+          router.push('/');
+        }
+      } else {
+        toast.error(res.message || 'Неверный код');
+        setCode(['', '', '', '', '', '']);
+        inputsRef.current[0]?.focus();
+      }
+    } catch {
+      setLoading(false);
+      toast.error('Ошибка сети');
+    }
+  };
+
+  const saveName = async (e) => {
+    e.preventDefault();
+    toast.success('Добро пожаловать в Хона.Ҳаст.tj!');
+    router.push('/');
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg,#0F2340,#1B3A6B)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div style={{ background: '#fff', borderRadius: 20, padding: '36px 28px', width: '100%', maxWidth: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}>
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <div style={{ fontSize: 40, marginBottom: 8 }}>🏠</div>
-          <div style={{ fontFamily: 'Georgia,serif', fontWeight: 800, fontSize: 22, color: '#0F2340' }}>Хона.<span style={{ color: '#F4821F' }}>Ҳаст</span>.tj</div>
-          <div style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>Войти или зарегистрироваться</div>
-        </div>
+    <div style={{ minHeight: '100vh', background: '#0F2244', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+      <div style={{ height: 180, position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, width: '100%', height: 36,
+          background: 'linear-gradient(180deg, transparent, rgba(255,255,255,0.04))',
+        }} />
+        <HouseDragAnim played={played} />
+      </div>
+
+      <div style={{ flex: 1, background: '#F7F8FA', borderRadius: '28px 28px 0 0', padding: '32px 24px 40px', maxWidth: 420, margin: '0 auto', width: '100%' }}>
 
         {step === 1 && (
-          <>
-            <div style={{ display: 'flex', border: '1.5px solid #E4E7ED', borderRadius: 10, overflow: 'hidden', marginBottom: 16 }}>
-              <span style={{ padding: '12px 14px', background: '#F7F8FA', fontWeight: 700, fontSize: 14, borderRight: '1.5px solid #E4E7ED', whiteSpace: 'nowrap' }}>🇹🇯 +992</span>
-              <input type="tel" placeholder="XX XXX XXXX" value={phone} onChange={e => setPhone(e.target.value)} style={{ flex: 1, padding: '12px 14px', border: 'none', outline: 'none', fontSize: 16 }} />
-            </div>
-            <button onClick={sendCode} disabled={loading} style={{ width: '100%', padding: '13px', background: '#F4821F', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>
-              {loading ? '...' : 'Получить SMS-код'}
+          <form onSubmit={sendCode}>
+            <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 24, color: '#0F2244', margin: '0 0 6px' }}>
+              Вход в Хона.Ҳаст.tj
+            </h1>
+            <p style={{ color: '#888', fontSize: 14, margin: '0 0 24px' }}>
+              Введите номер телефона. Быстро и просто.
+            </p>
+
+            <label style={{ display: 'block', fontSize: 13, color: '#555', marginBottom: 6 }}>Номер телефона</label>
+            <input
+              type="tel"
+              autoFocus
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+7 900 123 45 67"
+              style={inputStyle}
+            />
+
+            <button type="submit" disabled={loading} style={buttonStyle(loading)}>
+              {loading ? 'Отправляем...' : 'Получить код'}
             </button>
-          </>
+          </form>
         )}
 
         {step === 2 && (
-          <>
-            <input placeholder="6-значный код из SMS" value={code} onChange={e => setCode(e.target.value)} maxLength={6} style={{ width: '100%', padding: '13px 16px', border: '1.5px solid #E4E7ED', borderRadius: 10, fontSize: 20, textAlign: 'center', letterSpacing: '0.3em', outline: 'none', marginBottom: 12, fontWeight: 700 }} />
-            <input placeholder="Ваше имя (необязательно)" value={name} onChange={e => setName(e.target.value)} style={{ width: '100%', padding: '13px 16px', border: '1.5px solid #E4E7ED', borderRadius: 10, fontSize: 15, outline: 'none', marginBottom: 16 }} />
-            <button onClick={verifyCode} disabled={loading || code.length < 6} style={{ width: '100%', padding: '13px', background: code.length >= 6 ? '#F4821F' : '#E4E7ED', color: code.length >= 6 ? '#fff' : '#9CA3AF', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 15, cursor: code.length >= 6 ? 'pointer' : 'default' }}>
-              {loading ? '...' : 'Войти'}
+          <div>
+            <button onClick={() => setStep(1)} style={backButtonStyle}>← Назад</button>
+            <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 24, color: '#0F2244', margin: '12px 0 6px' }}>
+              Введите код
+            </h1>
+            <p style={{ color: '#888', fontSize: 14, margin: '0 0 28px' }}>
+              Отправили 6-значный код на {phone}
+            </p>
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between', marginBottom: 24 }} onPaste={handlePaste}>
+              {code.map((digit, i) => (
+                <input
+                  key={i}
+                  ref={(el) => (inputsRef.current[i] = el)}
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleCodeChange(i, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(i, e)}
+                  style={{
+                    width: 46, height: 56, textAlign: 'center', fontSize: 22, fontWeight: 700,
+                    borderRadius: 12, border: digit ? '2px solid #F97316' : '2px solid #DDE3EC',
+                    background: '#fff', color: '#0F2244', outline: 'none',
+                    transition: 'border-color 0.15s ease',
+                  }}
+                />
+              ))}
+            </div>
+
+            {loading && <p style={{ textAlign: 'center', color: '#999', fontSize: 13 }}>Проверяем код...</p>}
+
+            <button
+              onClick={sendCode}
+              style={{ display: 'block', margin: '0 auto', background: 'none', border: 'none', color: '#F97316', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+            >
+              Отправить код повторно
             </button>
-            <button onClick={() => setStep(1)} style={{ width: '100%', padding: '10px', background: 'none', border: 'none', color: '#6B7280', fontSize: 13, marginTop: 8, cursor: 'pointer' }}>← Изменить номер</button>
-          </>
+          </div>
+        )}
+
+        {step === 3 && (
+          <form onSubmit={saveName}>
+            <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 24, color: '#0F2244', margin: '0 0 6px' }}>
+              Как вас зовут?
+            </h1>
+            <p style={{ color: '#888', fontSize: 14, margin: '0 0 24px' }}>
+              Это увидят те, кому вы пишете
+            </p>
+
+            <input
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ваше имя"
+              style={inputStyle}
+            />
+
+            <button type="submit" style={buttonStyle(false)}>
+              Готово, войти →
+            </button>
+          </form>
         )}
       </div>
     </div>
   );
 }
+
+function HouseDragAnim({ played }) {
+  return (
+    <svg
+      viewBox="0 0 320 180"
+      style={{
+        position: 'absolute', bottom: 8, left: 0, width: 220,
+        transform: played ? 'translateX(0)' : 'translateX(-260px)',
+        opacity: played ? 1 : 0,
+        transition: 'transform 1.1s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.6s ease',
+      }}
+    >
+      <line x1="118" y1="120" x2="170" y2="128" stroke="#F97316" strokeWidth="3" strokeLinecap="round" />
+
+      <g>
+        <rect x="170" y="90" width="80" height="55" rx="6" fill="#fff" />
+        <polygon points="165,90 210,55 255,90" fill="#F97316" />
+        <rect x="195" y="112" width="22" height="33" rx="2" fill="#0F2244" />
+        <rect x="178" y="100" width="14" height="14" rx="2" fill="#A9C4E8" />
+        <rect x="222" y="100" width="14" height="14" rx="2" fill="#A9C4E8" />
+        <circle cx="188" cy="148" r="7" fill="#0F2244" />
+        <circle cx="232" cy="148" r="7" fill="#0F2244" />
+      </g>
+
+      <g style={{
+        animation: played ? 'walk 0.5s ease-in-out infinite alternate' : 'none',
+        transformOrigin: '100px 150px',
+      }}>
+        <circle cx="100" cy="98" r="10" fill="#FDBA74" />
+        <rect x="92" y="108" width="16" height="28" rx="6" fill="#0F2244" />
+        <line x1="94" y1="136" x2="88" y2="158" stroke="#0F2244" strokeWidth="5" strokeLinecap="round" />
+        <line x1="106" y1="136" x2="112" y2="158" stroke="#0F2244" strokeWidth="5" strokeLinecap="round" />
+        <line x1="108" y1="116" x2="120" y2="122" stroke="#FDBA74" strokeWidth="5" strokeLinecap="round" />
+      </g>
+
+      <style jsx>{`
+        @keyframes walk {
+          from { transform: translateY(0); }
+          to { transform: translateY(-3px); }
+        }
+      `}</style>
+    </svg>
+  );
+}
+
+const inputStyle = {
+  width: '100%',
+  padding: '14px 16px',
+  borderRadius: 12,
+  border: '1px solid #DDE3EC',
+  fontSize: 16,
+  outline: 'none',
+  marginBottom: 20,
+  boxSizing: 'border-box',
+  background: '#fff',
+};
+
+const buttonStyle = (loading) => ({
+  width: '100%',
+  background: loading ? '#999' : '#F97316',
+  color: '#fff',
+  fontWeight: 700,
+  fontSize: 16,
+  padding: '15px',
+  borderRadius: 12,
+  border: 'none',
+  cursor: loading ? 'default' : 'pointer',
+  boxShadow: loading ? 'none' : '0 8px 16px -4px rgba(249,115,22,0.4)',
+});
+
+const backButtonStyle = {
+  background: 'none',
+  border: 'none',
+  color: '#888',
+  fontSize: 14,
+  fontWeight: 600,
+  cursor: 'pointer',
+  padding: 0,
+};

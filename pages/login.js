@@ -25,7 +25,8 @@ export default function Login() {
     if (!phone) { toast.error('Введите номер телефона'); return; }
     setLoading(true);
     try {
-      const res = await fetch(`${API}/api/auth/send-code`, {
+      const url = `${API}/api/auth/send-code`;
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone }),
@@ -39,9 +40,9 @@ export default function Login() {
       } else {
         toast.error(res.message || 'Ошибка');
       }
-    } catch {
+    } catch (err) {
       setLoading(false);
-      toast.error('Ошибка сети');
+      toast.error(`DEBUG: ${API} | ${err.message}`, { duration: 15000 });
     }
   };
 
